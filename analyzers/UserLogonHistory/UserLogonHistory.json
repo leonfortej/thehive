@@ -1,0 +1,60 @@
+{
+  "name": "UserLogonHistory",
+  "version": "1.0.0",
+  "author": "TheHive Development Team",
+  "url": "https://github.com/leonfortej/thehive",
+  "license": "AGPL-V3",
+  "description": "Retrieves user logon history from a REST API endpoint. Provides authentication activity including timestamps, IP addresses, locations, and authentication status for security analysis and incident response.",
+  "dataTypeList": ["mail"],
+  "baseConfig": "UserLogonHistory",
+  "command": "analyzers/UserLogonHistory/userlogonhistory.py",
+  "configurationItems": [
+    {
+      "name": "api_url",
+      "description": "Full URL of the REST API endpoint for retrieving logon history. This should be the complete URL including protocol (e.g., https://api.example.com/v1/users/logon-history)",
+      "type": "string",
+      "multi": false,
+      "required": true,
+      "defaultValue": ""
+    },
+    {
+      "name": "api_key",
+      "description": "API key or bearer token for authentication (optional). If provided, will be sent as 'Authorization: Bearer {token}' header",
+      "type": "string",
+      "multi": false,
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "name": "timeout",
+      "description": "Request timeout in seconds",
+      "type": "number",
+      "multi": false,
+      "required": false,
+      "defaultValue": 30
+    },
+    {
+      "name": "verify_ssl",
+      "description": "Verify SSL certificates for HTTPS requests",
+      "type": "boolean",
+      "multi": false,
+      "required": false,
+      "defaultValue": true
+    }
+  ],
+  "registration_required": false,
+  "subscription_required": false,
+  "free_subscription": true,
+  "service_homepage": "https://github.com/leonfortej/thehive",
+  "service_logo": {
+    "path": "assets/logo.png",
+    "caption": "UserLogonHistory"
+  },
+  "screenshots": [],
+  "config": {
+    "check_tlp": true,
+    "max_tlp": 2,
+    "check_pap": true,
+    "max_pap": 2
+  }
+}
