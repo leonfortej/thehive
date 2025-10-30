@@ -1,0 +1,13 @@
+{
+  "data": "user@example.com",
+  "dataType": "mail",
+  "tlp": 3,
+  "pap": 2,
+  "config": {
+    "service": "UserLogonHistory",
+    "api_url": "https://example.com/api",
+    "api_signature": "test-signature",
+    "timeout": 60,
+    "verify_ssl": true
+  }
+}

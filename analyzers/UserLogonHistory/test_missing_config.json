@@ -1,0 +1,9 @@
+{
+  "data": "user@example.com",
+  "dataType": "mail",
+  "tlp": 2,
+  "pap": 2,
+  "config": {
+    "service": "UserLogonHistory"
+  }
+}
