@@ -1,37 +1,37 @@
 {
   "name": "UserLogonHistory",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "TheHive Development Team",
   "url": "https://github.com/leonfortej/thehive",
   "license": "AGPL-V3",
-  "description": "Retrieves user logon history from a REST API endpoint. Provides authentication activity including timestamps, IP addresses, locations, and authentication status for security analysis and incident response.",
+  "description": "Retrieves comprehensive user logon history analysis from Microsoft Sentinel via Azure Logic App. Provides 7-day authentication activity including sign-in counts, IP addresses, geographic locations, device information, MFA usage, risk assessment, and security recommendations for incident response and security investigations.",
   "dataTypeList": ["mail"],
   "baseConfig": "UserLogonHistory",
   "command": "analyzers/UserLogonHistory/userlogonhistory.py",
   "configurationItems": [
     {
       "name": "api_url",
-      "description": "Full URL of the REST API endpoint for retrieving logon history. This should be the complete URL including protocol (e.g., https://api.example.com/v1/users/logon-history)",
+      "description": "Base URL of the Azure Logic App endpoint WITHOUT the signature parameter. Example: https://your-app.azurewebsites.net/api/Get-User-Logon-History-Report/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0 (DO NOT include &sig= at the end)",
       "type": "string",
       "multi": false,
       "required": true,
       "defaultValue": ""
     },
     {
-      "name": "api_key",
-      "description": "API key or bearer token for authentication (optional). If provided, will be sent as 'Authorization: Bearer {token}' header",
+      "name": "api_signature",
+      "description": "API signature key for authentication. This will be appended to the URL as &sig={value}. Example: 0tqj9J40Z18eMY3iokYkldM-RwlWoJrsae2fgEdaZm8",
       "type": "string",
       "multi": false,
-      "required": false,
+      "required": true,
       "defaultValue": ""
     },
     {
       "name": "timeout",
-      "description": "Request timeout in seconds",
+      "description": "Request timeout in seconds (Logic App queries can take 30-90 seconds)",
       "type": "number",
       "multi": false,
       "required": false,
-      "defaultValue": 30
+      "defaultValue": 60
     },
     {
       "name": "verify_ssl",

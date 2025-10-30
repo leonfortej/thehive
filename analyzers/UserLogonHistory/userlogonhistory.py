@@ -38,9 +38,9 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
         self.validate_tlp(max_tlp=2)
 
         # Get configuration parameters
-        self.api_url = self.get_param('config.api_url', None, 'API URL is required')
-        self.api_key = self.get_param('config.api_key', None)  # Optional API key
-        self.timeout = self.get_param('config.timeout', 30)
+        self.api_base_url = self.get_param('config.api_url', None, 'API URL is required')
+        self.api_signature = self.get_param('config.api_signature', None, 'API signature is required')
+        self.timeout = self.get_param('config.timeout', 60)
         self.verify_ssl = self.get_param('config.verify_ssl', True)
 
         # Get the email from the observable data
@@ -66,15 +66,15 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
         try:
             self.logger.info(f'Retrieving logon history for: {self.email}')
 
+            # Construct full API URL with signature at the end
+            # The signature goes at the end as: &sig=SIGNATURE_VALUE
+            api_url = f'{self.api_base_url}&sig={self.api_signature}'
+
             # Initialize API client
             headers = {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': '*/*'
             }
-
-            # Add API key to headers if provided
-            if self.api_key:
-                headers['Authorization'] = f'Bearer {self.api_key}'
 
             client = APIClient(
                 timeout=self.timeout,
@@ -82,25 +82,26 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
                 headers=headers
             )
 
-            # Make API request
-            # The API URL should be the full endpoint URL
-            params = {'email': self.email}
+            # Prepare POST body with the required format
+            post_data = {
+                'dataType': 'mail',
+                'data': self.email,
+                'tlp': self.tlp,
+                'pap': self.pap
+            }
 
-            response = client.get(self.api_url, params=params)
+            self.logger.info(f'Making POST request to API')
+
+            # Make POST request
+            response = client.post(api_url, data=post_data)
 
             self.logger.info(f'Successfully retrieved logon history')
 
             # Process the response
-            logon_history = self._process_response(response)
+            analysis_result = self._process_response(response)
 
             # Report results
-            self.report({
-                'success': True,
-                'email': self.email,
-                'logon_count': len(logon_history),
-                'logon_history': logon_history,
-                'query_time': datetime.now(timezone.utc).isoformat()
-            })
+            self.report(analysis_result)
 
         except Exception as e:
             self.logger.error(f'Error retrieving logon history: {str(e)}')
@@ -108,70 +109,176 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
 
     def _process_response(self, response):
         """
-        Process API response and extract logon history.
+        Process API response and extract logon history analysis.
 
-        This method processes the API response and extracts relevant
-        logon history information. Adapt this method based on your
-        actual API response structure.
+        The API returns a response with:
+        - success: boolean
+        - full: { report: markdown_formatted_report }
+        - summary: { taxonomies: array }
 
         Args:
             response (dict): API response data
 
         Returns:
-            list: Processed logon history records
+            dict: Processed analysis result for Cortex
         """
-        logon_history = []
+        if not isinstance(response, dict):
+            self.logger.error('Unexpected response format: not a dictionary')
+            return {
+                'success': False,
+                'error': 'Invalid response format from API'
+            }
 
-        # Adapt this based on your API response structure
-        # Example structures handled:
+        # Extract success status
+        success = response.get('success', False)
 
-        # Case 1: Response has a 'data' field with array of logons
-        if 'data' in response:
-            raw_data = response['data']
-        # Case 2: Response has 'logons' field
-        elif 'logons' in response:
-            raw_data = response['logons']
-        # Case 3: Response has 'events' field
-        elif 'events' in response:
-            raw_data = response['events']
-        # Case 4: Response is directly an array
-        elif isinstance(response, list):
-            raw_data = response
-        # Case 5: Response has 'results' field
-        elif 'results' in response:
-            raw_data = response['results']
-        else:
-            self.logger.warning('Unknown API response structure, returning raw response')
-            return [response]
+        if not success:
+            self.logger.warning('API returned success=false')
+            return {
+                'success': False,
+                'error': 'API analysis failed'
+            }
 
-        # Process each logon record
-        for record in raw_data:
-            try:
-                logon_entry = {
-                    'timestamp': record.get('timestamp') or record.get('login_time') or record.get('datetime'),
-                    'ip_address': record.get('ip_address') or record.get('ip') or record.get('source_ip'),
-                    'location': record.get('location') or record.get('geo_location'),
-                    'status': record.get('status') or record.get('result') or 'unknown',
-                    'device': record.get('device') or record.get('user_agent'),
-                    'city': record.get('city'),
-                    'country': record.get('country'),
-                    'raw_data': record  # Keep raw data for reference
-                }
+        # Extract the full report
+        full_data = response.get('full', {})
+        markdown_report = full_data.get('report', '')
 
-                # Only include fields that have values
-                logon_entry = {k: v for k, v in logon_entry.items() if v is not None}
+        # Parse the markdown report to extract structured data
+        parsed_data = self._parse_markdown_report(markdown_report)
 
-                logon_history.append(logon_entry)
+        # Build the result
+        result = {
+            'success': True,
+            'email': self.email,
+            'raw_report': markdown_report,
+            'query_time': datetime.now(timezone.utc).isoformat()
+        }
 
-            except Exception as e:
-                self.logger.warning(f'Error processing logon record: {str(e)}')
-                # Include the problematic record with error note
-                logon_history.append({
-                    'error': f'Failed to process: {str(e)}',
-                    'raw_data': record
-                })
+        # Add parsed data to result
+        result.update(parsed_data)
 
-        return logon_history
+        return result
+
+    def _parse_markdown_report(self, markdown_text):
+        """
+        Parse the markdown report to extract structured data.
+
+        The report contains sections like:
+        - Executive Summary (with sign-in counts, IPs, locations, devices, risk level)
+        - Risk Indicators
+        - Geographic Distribution
+        - Source IP Analysis
+        - Device & Application Summary
+        - Authentication Details
+
+        Args:
+            markdown_text (str): Markdown formatted report
+
+        Returns:
+            dict: Structured data extracted from the report
+        """
+        import re
+
+        data = {}
+
+        try:
+            # Extract Executive Summary data
+            # Total Sign-ins
+            match = re.search(r'\*\*Total Sign-ins:\*\*\s*(\d+)', markdown_text)
+            if match:
+                data['total_signins'] = int(match.group(1))
+
+            # Successful sign-ins
+            match = re.search(r'\*\*Successful:\*\*\s*(\d+)', markdown_text)
+            if match:
+                data['successful_signins'] = int(match.group(1))
+
+            # Failed sign-ins
+            match = re.search(r'\*\*Failed:\*\*\s*(\d+)', markdown_text)
+            if match:
+                data['failed_signins'] = int(match.group(1))
+
+            # Unique IP Addresses
+            match = re.search(r'\*\*Unique IP Addresses:\*\*\s*(\d+)', markdown_text)
+            if match:
+                data['unique_ips'] = int(match.group(1))
+
+            # Unique Locations
+            match = re.search(r'\*\*Unique Locations:\*\*\s*(\d+)', markdown_text)
+            if match:
+                data['unique_locations'] = int(match.group(1))
+
+            # Unique Devices
+            match = re.search(r'\*\*Unique Devices:\*\*\s*(\d+)', markdown_text)
+            if match:
+                data['unique_devices'] = int(match.group(1))
+
+            # Overall Risk Level
+            match = re.search(r'\*\*Overall Risk Level:\*\*\s*(\w+)', markdown_text)
+            if match:
+                data['risk_level'] = match.group(1).strip()
+
+            # Analysis Period
+            match = re.search(r'\*\*Analysis Period:\*\*\s*([\d-]+)\s*to\s*([\d-]+)', markdown_text)
+            if match:
+                data['period_start'] = match.group(1)
+                data['period_end'] = match.group(2)
+
+            # Extract IP addresses from IP Analysis table
+            # Note: The markdown may have escaped newlines (\\n) instead of actual newlines
+            ip_addresses = []
+
+            # Try to find the IP table section
+            ip_section = re.search(r'\|\s*IP Address\s*\|\s*Login Count\s*\|([^#]*?)(?:##|\Z)', markdown_text, re.DOTALL | re.IGNORECASE)
+            if ip_section:
+                table_content = ip_section.group(1)
+                # Split by both actual newlines and escaped newlines
+                lines = re.split(r'\\n|\n', table_content)
+
+                for line in lines:
+                    # Skip header separator lines and empty lines
+                    if not line.strip() or '---' in line:
+                        continue
+
+                    # Extract IP and count from lines with pipes
+                    if '|' in line:
+                        parts = [p.strip() for p in line.split('|') if p.strip()]
+                        if len(parts) >= 2:
+                            # Validate it looks like an IP address (has dots or colons)
+                            if '.' in parts[0] or ':' in parts[0]:
+                                ip_addresses.append({
+                                    'ip': parts[0],
+                                    'count': parts[1]
+                                })
+
+            data['ip_addresses'] = ip_addresses
+
+            # Extract MFA usage percentage
+            match = re.search(r'\*\*MFA Usage:\*\*\s*(\d+)%', markdown_text)
+            if match:
+                data['mfa_usage_percent'] = int(match.group(1))
+
+            # Extract interactive vs non-interactive
+            match = re.search(r'\*\*Interactive vs Non-Interactive:\*\*\s*(\d+)\s*interactive,\s*(\d+)\s*non-interactive', markdown_text)
+            if match:
+                data['interactive_signins'] = int(match.group(1))
+                data['noninteractive_signins'] = int(match.group(2))
+
+            # High-Risk Sign-ins
+            match = re.search(r'\*\*High-Risk Sign-ins:\*\*\s*(\d+)', markdown_text)
+            if match:
+                data['high_risk_signins'] = int(match.group(1))
+
+            # Geographic Distribution - extract locations
+            match = re.search(r'\*\*Location\(s\):\*\*\s*([^\n]+)', markdown_text)
+            if match:
+                locations = [loc.strip() for loc in match.group(1).split(',')]
+                data['locations'] = locations
+
+        except Exception as e:
+            self.logger.warning(f'Error parsing markdown report: {str(e)}')
+
+        return data
 
     def summary(self, raw):
         """
@@ -184,33 +291,36 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
             dict: Summary with taxonomies
         """
         taxonomies = []
-        namespace = 'UserLogonHistory'
+        namespace = 'LoginAnalysis'
 
         if raw.get('success'):
-            logon_count = raw.get('logon_count', 0)
-
-            # Taxonomy 1: Logon count
-            taxonomies.append(
-                self.build_taxonomy(
-                    namespace=namespace,
-                    predicate='LogonCount',
-                    value=str(logon_count),
-                    level='info'
+            # Taxonomy 1: Total sign-ins
+            total_signins = raw.get('total_signins', 0)
+            if total_signins:
+                taxonomies.append(
+                    self.build_taxonomy(
+                        namespace=namespace,
+                        predicate='SignIns',
+                        value=str(total_signins),
+                        level='info'
+                    )
                 )
-            )
 
-            # Taxonomy 2: Status
-            taxonomies.append(
-                self.build_taxonomy(
-                    namespace=namespace,
-                    predicate='Status',
-                    value='Retrieved',
-                    level='safe'
+            # Taxonomy 2: Failed sign-ins
+            failed_signins = raw.get('failed_signins', 0)
+            if failed_signins:
+                level = 'suspicious' if failed_signins > 5 else 'info'
+                taxonomies.append(
+                    self.build_taxonomy(
+                        namespace=namespace,
+                        predicate='Failed',
+                        value=str(failed_signins),
+                        level=level
+                    )
                 )
-            )
 
-            # Taxonomy 3: Risk assessment based on patterns
-            risk_level = self._assess_risk(raw.get('logon_history', []))
+            # Taxonomy 3: Risk Level (from API analysis)
+            risk_level = raw.get('risk_level', 'Unknown')
             taxonomies.append(
                 self.build_taxonomy(
                     namespace=namespace,
@@ -219,6 +329,19 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
                     level=self._get_taxonomy_level(risk_level)
                 )
             )
+
+            # Taxonomy 4: MFA Usage
+            mfa_percent = raw.get('mfa_usage_percent')
+            if mfa_percent is not None:
+                level = 'safe' if mfa_percent >= 90 else ('suspicious' if mfa_percent < 50 else 'info')
+                taxonomies.append(
+                    self.build_taxonomy(
+                        namespace=namespace,
+                        predicate='MFA',
+                        value=f'{mfa_percent}%',
+                        level=level
+                    )
+                )
 
         else:
             taxonomies.append(
@@ -231,49 +354,6 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
             )
 
         return {'taxonomies': taxonomies}
-
-    def _assess_risk(self, logon_history):
-        """
-        Assess risk level based on logon patterns.
-
-        This is a simple risk assessment. Enhance based on your requirements.
-
-        Args:
-            logon_history (list): List of logon records
-
-        Returns:
-            str: Risk level (Low, Medium, High)
-        """
-        if not logon_history:
-            return 'Unknown'
-
-        # Count failed logons
-        failed_count = sum(
-            1 for entry in logon_history
-            if entry.get('status', '').lower() in ['failed', 'failure', 'denied']
-        )
-
-        # Get unique IP addresses
-        ip_addresses = set(
-            entry.get('ip_address')
-            for entry in logon_history
-            if entry.get('ip_address')
-        )
-
-        # Get unique countries
-        countries = set(
-            entry.get('country')
-            for entry in logon_history
-            if entry.get('country')
-        )
-
-        # Simple risk assessment
-        if failed_count > 5:
-            return 'High'
-        elif failed_count > 2 or len(countries) > 3:
-            return 'Medium'
-        else:
-            return 'Low'
 
     def _get_taxonomy_level(self, risk_level):
         """
@@ -297,6 +377,8 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
         """
         Extract artifacts (observables) from the results.
 
+        Extracts IP addresses from the login analysis report.
+
         Args:
             raw (dict): Raw analysis results
 
@@ -308,19 +390,24 @@ class UserLogonHistoryAnalyzer(BaseAnalyzer):
         if not raw.get('success'):
             return artifacts
 
-        logon_history = raw.get('logon_history', [])
+        # Extract IP addresses from parsed data
+        ip_addresses = raw.get('ip_addresses', [])
 
-        # Extract unique IP addresses as artifacts
-        seen_ips = set()
-        for entry in logon_history:
-            ip_address = entry.get('ip_address')
-            if ip_address and ip_address not in seen_ips:
-                artifacts.append({
-                    'dataType': 'ip',
-                    'data': ip_address,
-                    'message': f'IP address from logon history for {raw.get("email")}'
-                })
-                seen_ips.add(ip_address)
+        for ip_entry in ip_addresses:
+            ip_addr = ip_entry.get('ip', '').strip()
+            login_count = ip_entry.get('count', '0')
+
+            # Skip empty or invalid IPs
+            if not ip_addr or ip_addr == '':
+                continue
+
+            # IPv6 addresses start with numbers or letters followed by colon
+            # IPv4 addresses are dotted decimal
+            artifacts.append({
+                'dataType': 'ip',
+                'data': ip_addr,
+                'message': f'IP address from logon history ({login_count} logins) for {raw.get("email")}'
+            })
 
         return artifacts
 

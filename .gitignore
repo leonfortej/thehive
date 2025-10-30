@@ -54,6 +54,10 @@ secrets.json
 # Cortex specific
 *.test.json
 test_output.json
+test_input.json.local
+**/test_input.json
+**/*Test.txt
+**/*test.txt
 
 # Documentation builds
 docs/_build/
