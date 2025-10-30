@@ -48,7 +48,7 @@ The TheHive Cortex Analyzers framework and UserLogonHistory analyzer have been c
 **Test Case**: Live Microsoft Sentinel Query via Azure Logic App
 
 **Input**:
-- Email: `jason.leonforte@brightspeed.com`
+- Email: `testuser@example.com`
 - TLP: 2 (AMBER)
 - PAP: 2 (AMBER)
 

@@ -58,6 +58,7 @@ test_input.json.local
 **/test_input.json
 **/*Test.txt
 **/*test.txt
+**/TESTING.md
 
 # Documentation builds
 docs/_build/

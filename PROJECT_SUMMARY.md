@@ -316,7 +316,7 @@ thehive/
 ### Real-World Test Results
 
 **Test Subject**: Microsoft 365 User Authentication Analysis
-**Email**: jason.leonforte@brightspeed.com
+**Email**: testuser@example.com
 **Period**: 7 days (2025-10-23 to 2025-10-30)
 
 **Results**:
