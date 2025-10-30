@@ -41,7 +41,7 @@ try {
 # Pull latest changes
 Write-Log "Pulling latest changes from GitHub..."
 try {
-    $gitOutput = git pull origin master 2>&1 | Out-String
+    $gitOutput = git pull origin main 2>&1 | Out-String
     Write-Log "Git pull output: $gitOutput"
 
     # Get new commit hash
