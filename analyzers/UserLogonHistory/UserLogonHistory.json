@@ -1,12 +1,12 @@
 {
-  "name": "UserLogonHistory",
-  "version": "2.0.1",
+  "name": "UserLogonHistoryFixed",
+  "version": "1.0.0",
   "author": "TheHive Development Team",
   "url": "https://github.com/leonfortej/thehive",
   "license": "AGPL-V3",
   "description": "Retrieves comprehensive user logon history analysis from Microsoft Sentinel via Azure Logic App. Provides 7-day authentication activity including sign-in counts, IP addresses, geographic locations, device information, MFA usage, risk assessment, and security recommendations for incident response and security investigations.",
   "dataTypeList": ["mail"],
-  "baseConfig": "UserLogonHistory",
+  "baseConfig": "UserLogonHistoryFixed",
   "command": "UserLogonHistory/userlogonhistory.py",
   "configurationItems": [
     {
