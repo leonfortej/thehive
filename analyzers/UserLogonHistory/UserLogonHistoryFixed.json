@@ -1,0 +1,60 @@
+{
+  "name": "UserLogonHistoryFixed",
+  "version": "1.0.0",
+  "author": "TheHive Development Team",
+  "url": "https://github.com/leonfortej/thehive",
+  "license": "AGPL-V3",
+  "description": "Retrieves comprehensive user logon history analysis from Microsoft Sentinel via Azure Logic App. Provides 7-day authentication activity including sign-in counts, IP addresses, geographic locations, device information, MFA usage, risk assessment, and security recommendations for incident response and security investigations.",
+  "dataTypeList": ["mail"],
+  "baseConfig": "UserLogonHistoryFixed",
+  "command": "UserLogonHistory/userlogonhistory.py",
+  "configurationItems": [
+    {
+      "name": "api_url",
+      "description": "Base URL of the Azure Logic App endpoint WITHOUT the signature parameter. Example: https://your-app.azurewebsites.net/api/Get-User-Logon-History-Report/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0 (DO NOT include &sig= at the end)",
+      "type": "string",
+      "multi": false,
+      "required": true,
+      "defaultValue": ""
+    },
+    {
+      "name": "api_signature",
+      "description": "API signature key for authentication. This will be appended to the URL as &sig={value}. Example: 0tqj9J40Z18eMY3iokYkldM-RwlWoJrsae2fgEdaZm8",
+      "type": "string",
+      "multi": false,
+      "required": true,
+      "defaultValue": ""
+    },
+    {
+      "name": "timeout",
+      "description": "Request timeout in seconds (Logic App queries can take 30-90 seconds)",
+      "type": "number",
+      "multi": false,
+      "required": false,
+      "defaultValue": 60
+    },
+    {
+      "name": "verify_ssl",
+      "description": "Verify SSL certificates for HTTPS requests",
+      "type": "boolean",
+      "multi": false,
+      "required": false,
+      "defaultValue": true
+    }
+  ],
+  "registration_required": false,
+  "subscription_required": false,
+  "free_subscription": true,
+  "service_homepage": "https://github.com/leonfortej/thehive",
+  "service_logo": {
+    "path": "assets/logo.png",
+    "caption": "UserLogonHistory"
+  },
+  "screenshots": [],
+  "config": {
+    "check_tlp": true,
+    "max_tlp": 2,
+    "check_pap": true,
+    "max_pap": 2
+  }
+}
