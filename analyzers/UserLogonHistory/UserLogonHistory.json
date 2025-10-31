@@ -7,7 +7,7 @@
   "description": "Retrieves comprehensive user logon history analysis from Microsoft Sentinel via Azure Logic App. Provides 7-day authentication activity including sign-in counts, IP addresses, geographic locations, device information, MFA usage, risk assessment, and security recommendations for incident response and security investigations.",
   "dataTypeList": ["mail"],
   "baseConfig": "UserLogonHistory",
-  "command": "analyzers/UserLogonHistory/userlogonhistory.py",
+  "command": "UserLogonHistory/userlogonhistory.py",
   "configurationItems": [
     {
       "name": "api_url",
