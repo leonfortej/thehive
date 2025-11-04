@@ -19,8 +19,8 @@ services:
       - cortex-jobs:/tmp/cortex-jobs
       - /var/run/cortex/jobs:/tmp/cortex-jobs
 
-      # Custom analyzers and responders from GitHub repo (READ-ONLY)
-      - /opt/CustomAnalyzers:/opt/CustomAnalyzers:ro
+      # Custom analyzers and responders from local directory (READ-ONLY)
+      - C:/AI Projects/SOC-Automation/02-TheHive-Cortex/analyzers:/opt/CustomAnalyzers:ro
 
       # Custom Cortex configuration
       - /opt/cortex/application.conf:/etc/cortex/application.conf:ro

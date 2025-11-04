@@ -67,3 +67,10 @@ docs/_build/
 *.tmp
 *.bak
 *.backup
+*_backup*.py
+*_clean.py
+*_old.py
+*.json.backup
+CLEANUP-CHANGES.md
+NEXT-STEPS.md
+TROUBLESHOOTING-RETROSPECTIVE.md

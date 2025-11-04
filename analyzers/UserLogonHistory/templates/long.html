@@ -1,0 +1,150 @@
+<div class="panel panel-info">
+  <div class="panel-heading">
+    <strong>User Login History Analysis</strong>
+  </div>
+  <div class="panel-body">
+
+    <!-- Account Information -->
+    <h4>Account Information</h4>
+    <dl class="dl-horizontal">
+      <dt>Account:</dt>
+      <dd>{{content.account}}</dd>
+      <dt>Analysis Period:</dt>
+      <dd>{{content.analysis_period.start_date}} to {{content.analysis_period.end_date}}</dd>
+      <dt>Report Generated:</dt>
+      <dd>{{content.analysis_period.report_generated}}</dd>
+      <dt>Overall Risk Level:</dt>
+      <dd>
+        <span class="label"
+              ng-class="{'label-success': content.risk_assessment.overall_risk_level=='Low',
+                         'label-warning': content.risk_assessment.overall_risk_level=='Medium',
+                         'label-danger': content.risk_assessment.overall_risk_level=='High'}">
+          {{content.risk_assessment.overall_risk_level}}
+        </span>
+      </dd>
+    </dl>
+
+    <!-- Summary Metrics -->
+    <h4>Summary Metrics</h4>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="panel panel-default">
+          <div class="panel-body text-center">
+            <h3>{{content.summary_metrics.total_signins}}</h3>
+            <p>Total Sign-ins</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="panel panel-success">
+          <div class="panel-body text-center">
+            <h3>{{content.summary_metrics.successful_signins}}</h3>
+            <p>Successful</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="panel panel-danger">
+          <div class="panel-body text-center">
+            <h3>{{content.summary_metrics.failed_signins}}</h3>
+            <p>Failed</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4">
+        <div class="panel panel-default">
+          <div class="panel-body text-center">
+            <h3>{{content.summary_metrics.unique_ip_addresses}}</h3>
+            <p>Unique IP Addresses</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="panel panel-default">
+          <div class="panel-body text-center">
+            <h3>{{content.summary_metrics.unique_locations}}</h3>
+            <p>Unique Locations</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="panel panel-default">
+          <div class="panel-body text-center">
+            <h3>{{content.summary_metrics.unique_devices}}</h3>
+            <p>Unique Devices</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Authentication Details -->
+    <h4>Authentication Details</h4>
+    <dl class="dl-horizontal">
+      <dt>MFA Usage:</dt>
+      <dd>{{content.authentication_details.mfa_usage_percentage}}%</dd>
+      <dt>Interactive Sign-ins:</dt>
+      <dd>{{content.authentication_details.interactive_signins}}</dd>
+      <dt>Non-Interactive Sign-ins:</dt>
+      <dd>{{content.authentication_details.non_interactive_signins}}</dd>
+      <dt>High-Risk Sign-ins:</dt>
+      <dd>
+        <span class="label"
+              ng-class="{'label-success': content.authentication_details.high_risk_signins==0,
+                         'label-danger': content.authentication_details.high_risk_signins>0}">
+          {{content.authentication_details.high_risk_signins}}
+        </span>
+      </dd>
+    </dl>
+
+    <!-- Geographic Analysis -->
+    <h4>Geographic Distribution</h4>
+    <dl class="dl-horizontal">
+      <dt>Countries:</dt>
+      <dd>
+        <span class="label label-info" ng-repeat="country in content.geographic_analysis.countries" style="margin-right: 5px;">
+          {{country}}
+        </span>
+      </dd>
+    </dl>
+
+    <!-- IP Address Analysis -->
+    <h4>Source IP Addresses</h4>
+    <table class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Login Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="ip in content.ip_address_analysis">
+          <td>{{ip[0]}}</td>
+          <td>{{ip[1]}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Device Analysis -->
+    <h4>Devices</h4>
+    <ul>
+      <li ng-repeat="device in content.device_analysis">{{device}}</li>
+    </ul>
+
+    <!-- Recent Activity -->
+    <h4>Recent Activity</h4>
+    <dl class="dl-horizontal">
+      <dt>Events Captured:</dt>
+      <dd>{{content.recent_activity.events_captured}}</dd>
+      <dt>Query to View Details:</dt>
+      <dd><code>{{content.recent_activity.query_to_view_details}}</code></dd>
+    </dl>
+
+    <!-- Anomalies -->
+    <h4>Anomalies</h4>
+    <p>{{content.anomalies.status}}</p>
+
+  </div>
+</div>
